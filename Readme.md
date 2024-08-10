@@ -449,11 +449,11 @@ contract ERC20 {
 
 **setVersion(string memory vs)**
 
-- **`DOMAIN_SEPARATOR`의 버전 값을 설정할 때 사용**
+- `DOMAIN_SEPARATOR`의 버전 값을 설정할 때 사용
 
 **v()**
 
-- **`DOMAIN_SEPARATOR`의 버전 값을 반환**
+- `DOMAIN_SEPARATOR`의 버전 값을 반환
 
 ---
 ### 이벤트
