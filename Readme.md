@@ -458,7 +458,7 @@ contract ERC20 {
 
 ## 실행 결과
 
-![image.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/4011174d-a484-42e1-8006-8cbfa3901a58/d2fadd1b-29ad-4545-bc97-abf95fa6193b/image.png)
+![실행결과](image.png)
 
 ---
 
