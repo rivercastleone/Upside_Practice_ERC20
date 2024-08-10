@@ -185,7 +185,7 @@
 
 ---
 
-## 함수 구현
+## 구현
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -327,6 +327,8 @@ contract ERC20 {
 }
 ```
 
+### 변수
+
 - `mapping(address => uint256) private _balances`
     - Key: 사용자의 주소
     - Value: 해당 주소가 보유한 토큰의 양
@@ -366,6 +368,7 @@ contract ERC20 {
     - permit 함수에서 사용되는 타입 해시
 
 ---
+### 함수
 
 **name, symbol, decimals**
 
@@ -452,6 +455,7 @@ contract ERC20 {
 - **`DOMAIN_SEPARATOR`의 버전 값을 반환**
 
 ---
+### 이벤트
 
 **Transfer**
 
@@ -463,6 +467,7 @@ contract ERC20 {
 - `approve` 함수가 성공적으로 호출될 때마다 반드시 발생
 
 ---
+### 예외 처리
 
 **onlyOwner**
 
