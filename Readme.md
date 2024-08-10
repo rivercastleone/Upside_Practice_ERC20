@@ -1,6 +1,6 @@
 ## 분석
 
-- test1
+### test1
     
     ```solidity
         function setUp() public {
@@ -42,7 +42,7 @@
     ```
     
     - `pause` 가 걸려있기 때문에 `revert` 발생
-- test2
+  ### test2
     
     ```solidity
         function setUp() public {
@@ -173,7 +173,7 @@
     ```
     
     - 같은 `nonce` 값 사용으로 인해 `revert` 발생
-    - `revert` 시 **INVALID_SIGNER** 메세지가 반환
+    - `revert` 시 **INVALID_SIGNER** 메세지가 반환되야함
 
 ---
 
@@ -322,28 +322,38 @@ contract ERC20 {
 - `mapping(address => uint256) private _balances`
     - Key: 사용자의 주소
     - Value: 해당 주소가 보유한 토큰의 양
+      
 - `mapping(address => bool) private ownerlist`
     - Key: `owner` 주소
     - Value: `owner` 여부
+      
 - `mapping(address => mapping(address => uint256)) private _allowances`
     - Key1: 토큰 소유자의 주소
     - Key2: 토큰을 사용할 권한을 받은 주소
     - Value: 허용된 토큰의 양
+      
 - `mapping(address => uint256) private nonce`
     - Key: 사용자의 주소)
     - Value: 해당 주소의 현재 `permit`에 대한 nonce 값
+      
 - `uint256 public _totalSupply`
     - 총 발행된 토큰의 양
+      
 - `string private _name`
     - 토큰의 이름
+      
 - `string private _symbol`
     - 토큰의 심볼
+      
 - `string private_pause`
     - 컨트랙트의 일시 중지 상태 여부
+      
 - `string private version`
     - 컨트랙트의 버전
+      
 - `address public owner`
     - 컨트랙트의 소유자 주소
+      
 - `bytes32 public PERMIT_TYPEHASH`
     - permit 함수에서 사용되는 타입 해시
 
