@@ -1,179 +1,187 @@
 ## 분석
 
 ### test1
-    
-    ```solidity
-        function setUp() public {
-            upside_token = new ERC20("UPSIDE", "UPS");
-            upside_token.transfer(alice, 50 ether);
-            upside_token.transfer(bob, 50 ether);
-        }
-    ```
-    
-    - `UPSIDE`라는 이름과 `UPS` 라는 심볼을 가진 토큰을 생성
-    - `bob`과 `alice` 에게 50 ether씩 전송
-    
-    ```solidity
-        function testFailPauseNotOwner() public {
-            vm.prank(alice);
-            upside_token.pause();
-        }
-    ```
-    
-    - `alice` 가 pause를 시도하였으나 `owner` 가 아니기 때문에 `revert` 가 발생
-    
-    ```solidity
-        function testFailTransfer() public {
-            upside_token.pause();
-            vm.prank(alice);
-            upside_token.transfer(bob, 10 ether);
-        }
-    ```
-    
-    - `pause` 가 걸려있기 때문에 토큰 전송시 `revert`
-    
-    ```solidity
-        function testFailTransferFrom() public {
-            upside_token.pause();
-            vm.prank(alice);
-            upside_token.approve(msg.sender, 10 ether);
-            upside_token.transferFrom(alice, bob, 10 ether);
-        }
-    ```
-    
-    - `pause` 가 걸려있기 때문에 `revert` 발생
-  ### test2
-    
-    ```solidity
-        function setUp() public {
-            upside_token = new ERC20("UPSIDE", "UPS");
-    
-            alicePK = 0xa11ce;
-            alice = vm.addr(alicePK);
-    
-            bobPK = 0xb0b;
-            bob = vm.addr(bobPK);
-            emit log_address(alice);
-            emit log_address(bob);
-    
-            upside_token.transfer(alice, 50 ether);
-            upside_token.transfer(bob, 50 ether);
-        }
-    ```
-    
-    - `UPSIDE`라는 이름과 `UPS` 라는 심볼을 가진 토큰을 생성
-    - `bob`과 `alice` 에게 50 ether씩 전송
-    
-    ```solidity
-         function testPermit() public {
-            bytes32 structHash = keccak256(abi.encode(
-                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
-                alice, 
-                address(this), 
-                10 ether, 
-                0, 
-                1 days
-                ));
-            bytes32 hash = upside_token._toTypedDataHash(structHash);
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, hash);
-    
-            assertEq(upside_token.nonces(alice), 0);
-            upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
-            console.log(upside_token.allowance(alice, address(this)));
-            assertEq(upside_token.allowance(alice, address(this)), 10 ether);
-            assertEq(upside_token.nonces(alice), 1);
-        }
-    ```
-    
-    - `permit` 을 통해 1일의 기한 동안 10 ether를 전송가능하게 허가
-    - `permit` 이전의 `alice` 의 `nonces` 값이 0이여야 함
-    - `allowance` 값이 10 ether이여야 함
-    - `permit` 이후의 `alice`의 `nonces` 값이 1이여야 함
-    
-    ```solidity
-        function testFailExpiredPermit() public {
-            bytes32 hash = keccak256(abi.encode(
-                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
-                alice, 
-                address(this), 
-                10 ether, 
-                0, 
-                1 days
-                ));
-            bytes32 digest = upside_token._toTypedDataHash(hash);
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, digest);
-    
-            vm.warp(1 days + 1 seconds);
-    
-            upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
-        }
-    ```
-    
-    - `permit` 의 `Hash` 값에 포함된 마감일이 하루이기 때문에 `revert` 발생
-    
-    ```solidity
-        function testFailInvalidSigner() public {
-            bytes32 hash = keccak256(abi.encode(
-                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
-                alice, 
-                address(this), 
-                10 ether, 
-                0, 
-                1 days
-                ));
-            bytes32 digest = upside_token._toTypedDataHash(hash);
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(bobPK, digest);
-    
-            upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
-        }
-    ```
-    
-    - `toTypedDataHash`를 호출하여 최종 서명할 메시지 digest를 생성
-    - `bob`의 개인키로 서명을 진행
-    - 생성된 서명(v, r, s)과 함께 `permit`을 호출
-    - `Alice`의 주소를 `owner`로 사용하지만 `Bob`의 서명을 제공
-    - 서명자(`Bob`)와 명시된 소유자(`Alice`)가 일치하지 않아 `revert` 발생
-    
-    ```solidity
-        function testFailInvalidNonce() public {
-            bytes32 hash = keccak256(abi.encode(
-                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
-                alice, 
-                address(this), 
-                10 ether, 
-                1, 
-                1 days
-                ));
-            bytes32 digest = upside_token._toTypedDataHash(hash);
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, digest);
-    
-            upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
-        }
-    ```
-    
-    - 잘못된 `nonce` 값으로 인해 `revert` 발생
-    
-    ```solidity
-        function testReplay() public {
-            bytes32 hash = keccak256(abi.encode(
-                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
-                alice, 
-                address(this), 
-                10 ether, 
-                0, 
-                1 days
-                ));
-            bytes32 digest = upside_token._toTypedDataHash(hash);
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, digest);
-    
-            upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
-            vm.expectRevert("INVALID_SIGNER");
-            upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
-        }
-    ```
-    
-    - 같은 `nonce` 값 사용으로 인해 `revert` 발생
-    - `revert` 시 **INVALID_SIGNER** 메세지가 반환되야함
+
+```solidity
+    function setUp() public {
+        upside_token = new ERC20("UPSIDE", "UPS");
+        upside_token.transfer(alice, 50 ether);
+        upside_token.transfer(bob, 50 ether);
+    }
+```
+
+
+- `UPSIDE`라는 이름과 `UPS` 라는 심볼을 가진 토큰을 생성
+- `bob`과 `alice` 에게 50 ether씩 전송
+
+```solidity
+    function testFailPauseNotOwner() public {
+        vm.prank(alice);
+        upside_token.pause();
+    }
+```
+
+
+- `alice` 가 pause를 시도하였으나 `owner` 가 아니기 때문에 `revert` 가 발생
+
+```solidity
+    function testFailTransfer() public {
+        upside_token.pause();
+        vm.prank(alice);
+        upside_token.transfer(bob, 10 ether);
+    }
+```
+
+- `pause` 가 걸려있기 때문에 토큰 전송시 `revert`
+
+```solidity
+    function testFailTransferFrom() public {
+        upside_token.pause();
+        vm.prank(alice);
+        upside_token.approve(msg.sender, 10 ether);
+        upside_token.transferFrom(alice, bob, 10 ether);
+    }
+```
+
+
+- `pause` 가 걸려있기 때문에 `revert` 발생
+
+### test2
+
+```solidity
+    function setUp() public {
+        upside_token = new ERC20("UPSIDE", "UPS");
+
+        alicePK = 0xa11ce;
+        alice = vm.addr(alicePK);
+
+        bobPK = 0xb0b;
+        bob = vm.addr(bobPK);
+        emit log_address(alice);
+        emit log_address(bob);
+
+        upside_token.transfer(alice, 50 ether);
+        upside_token.transfer(bob, 50 ether);
+    }
+```
+
+- `UPSIDE`라는 이름과 `UPS` 라는 심볼을 가진 토큰을 생성
+- `bob`과 `alice` 에게 50 ether씩 전송
+
+
+```solidity
+     function testPermit() public {
+        bytes32 structHash = keccak256(abi.encode(
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
+            alice, 
+            address(this), 
+            10 ether, 
+            0, 
+            1 days
+            ));
+        bytes32 hash = upside_token._toTypedDataHash(structHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, hash);
+
+        assertEq(upside_token.nonces(alice), 0);
+        upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
+        console.log(upside_token.allowance(alice, address(this)));
+        assertEq(upside_token.allowance(alice, address(this)), 10 ether);
+        assertEq(upside_token.nonces(alice), 1);
+    }
+```
+
+- `permit` 을 통해 1일의 기한 동안 10 ether를 전송가능하게 허가
+- `permit` 이전의 `alice` 의 `nonces` 값이 0이여야 함
+- `allowance` 값이 10 ether이여야 함
+- `permit` 이후의 `alice`의 `nonces` 값이 1이여야 함
+
+
+```solidity
+    function testFailExpiredPermit() public {
+        bytes32 hash = keccak256(abi.encode(
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
+            alice, 
+            address(this), 
+            10 ether, 
+            0, 
+            1 days
+            ));
+        bytes32 digest = upside_token._toTypedDataHash(hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, digest);
+
+        vm.warp(1 days + 1 seconds);
+
+        upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
+    }
+```
+
+- `permit` 의 `Hash` 값에 포함된 마감일이 하루이기 때문에 `revert` 발생
+
+
+```solidity
+    function testFailInvalidSigner() public {
+        bytes32 hash = keccak256(abi.encode(
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
+            alice, 
+            address(this), 
+            10 ether, 
+            0, 
+            1 days
+            ));
+        bytes32 digest = upside_token._toTypedDataHash(hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(bobPK, digest);
+
+        upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
+    }
+```
+
+- `toTypedDataHash`를 호출하여 최종 서명할 메시지 digest를 생성
+- `bob`의 개인키로 서명을 진행
+- 생성된 서명(v, r, s)과 함께 `permit`을 호출
+- `Alice`의 주소를 `owner`로 사용하지만 `Bob`의 서명을 제공
+- 서명자(`Bob`)와 명시된 소유자(`Alice`)가 일치하지 않아 `revert` 발생
+
+
+```solidity
+    function testFailInvalidNonce() public {
+        bytes32 hash = keccak256(abi.encode(
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
+            alice, 
+            address(this), 
+            10 ether, 
+            1, 
+            1 days
+            ));
+        bytes32 digest = upside_token._toTypedDataHash(hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, digest);
+
+        upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
+    }
+```
+
+- 잘못된 `nonce` 값으로 인해 `revert` 발생
+
+```solidity
+    function testReplay() public {
+        bytes32 hash = keccak256(abi.encode(
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"), 
+            alice, 
+            address(this), 
+            10 ether, 
+            0, 
+            1 days
+            ));
+        bytes32 digest = upside_token._toTypedDataHash(hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(alicePK, digest);
+
+        upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
+        vm.expectRevert("INVALID_SIGNER");
+        upside_token.permit(alice, address(this), 10 ether, 1 days, v, r, s);
+    }
+```
+
+- 같은 `nonce` 값 사용으로 인해 `revert` 발생
+- `revert` 시 **INVALID_SIGNER** 메세지가 반환되야 함
 
 ---
 
@@ -322,38 +330,38 @@ contract ERC20 {
 - `mapping(address => uint256) private _balances`
     - Key: 사용자의 주소
     - Value: 해당 주소가 보유한 토큰의 양
-      
+
 - `mapping(address => bool) private ownerlist`
     - Key: `owner` 주소
     - Value: `owner` 여부
-      
+
 - `mapping(address => mapping(address => uint256)) private _allowances`
     - Key1: 토큰 소유자의 주소
     - Key2: 토큰을 사용할 권한을 받은 주소
     - Value: 허용된 토큰의 양
-      
+
 - `mapping(address => uint256) private nonce`
     - Key: 사용자의 주소)
     - Value: 해당 주소의 현재 `permit`에 대한 nonce 값
-      
+
 - `uint256 public _totalSupply`
     - 총 발행된 토큰의 양
-      
+
 - `string private _name`
     - 토큰의 이름
-      
+
 - `string private _symbol`
     - 토큰의 심볼
-      
+
 - `string private_pause`
     - 컨트랙트의 일시 중지 상태 여부
-      
+
 - `string private version`
     - 컨트랙트의 버전
-      
+
 - `address public owner`
     - 컨트랙트의 소유자 주소
-      
+
 - `bytes32 public PERMIT_TYPEHASH`
     - permit 함수에서 사용되는 타입 해시
 
